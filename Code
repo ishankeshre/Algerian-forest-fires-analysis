@@ -1,0 +1,59 @@
+# Importing required libraries
+import pandas as pd
+import numpy as np
+
+# Load the dataset, skipping the first row and keeping blank lines
+df = pd.read_csv("/content/drive/MyDrive/Algerian_forest_fires_dataset_UPDATE (1).csv", skiprows=1, skip_blank_lines=False)
+print(df)
+
+# Identify rows with missing target values ('Classes' column)
+missing_rows = df[df['Classes'].isnull()]
+
+# Drop those rows with missing target values
+df1 = df.drop(missing_rows.index)
+
+# Filter out any remaining rows where the first column contains alphabets (like headers repeated)
+alphadf = df1[df1.iloc[:, 0].str.isalpha()]
+
+# Drop the row at index 124 which may be a duplicated header or corrupted row
+df1 = df1.drop(index=124)
+
+# Convert categorical class labels to numeric: 'fire' → 1, 'not fire' → 0
+df1['Classes'] = df1['Classes'].map({'fire': 1, 'not fire': 0})
+
+# Ensure the 'Classes' column is of integer type
+df1['Classes'] = df1['Classes'].astype(int)
+
+# Generate and visualize the correlation matrix
+correlation_matrix = df1.corr()
+correlation_matrix.style.background_gradient(cmap='coolwarm', axis=None)
+
+# Drop non-numerical columns that won't help in modeling
+df1 = df1.drop(['month', 'year', 'day'], axis=1)
+
+# --------------------------------------------------
+# Train a Logistic Regression Classifier
+# --------------------------------------------------
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, accuracy_score
+
+# Separate features (X) and target (y)
+X = df1.iloc[:, :-1]
+y = df1['Classes']
+
+# Split data into training and testing sets (65% train, 35% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.35, random_state=42)
+
+# Initialize and train logistic regression model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+print("Accuracy:", accuracy_score(y_test, y_pred))
+# Optional: You can also print classification report
+# print(classification_report(y_test, y_pred))
